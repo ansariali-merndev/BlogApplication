@@ -1,10 +1,38 @@
 import { useState } from "react";
+import z from "zod";
 import { CustomInput } from "../components/form/EmailInput";
 import { FormHeading } from "../components/form/FormHeading";
 import { FormSubmit } from "../components/form/FormSubmit";
 import { PasswordInput } from "../components/form/Password";
+import { handleWarnSwal } from "../utils/swal";
+import { postRequest } from "../axios";
+import { useUser } from "../utils/UserContext";
+import { useNavigate } from "react-router-dom";
+
+const formSchema = z.object({
+  firstName: z
+    .string()
+    .min(3, { message: "First name must be at least 3 characters long" })
+    .max(12, { message: "First name cannot exceed 12 characters" }),
+  lastName: z
+    .string()
+    .min(3, { message: "Last name must be at least 3 characters long" })
+    .max(12, { message: "Last name cannot exceed 12 characters" }),
+  email: z.email({ message: "Please enter a valid email address" }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters long" })
+    .max(15, { message: "Password cannot exceed 15 characters" })
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+      message:
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+    }),
+});
 
 export const Register = () => {
+  const { setUserDetail } = useUser();
+  const navigate = useNavigate();
+  const [isPending, setIsPending] = useState(false);
   const [formdata, setFormdata] = useState({
     firstName: "",
     lastName: "",
@@ -17,15 +45,36 @@ export const Register = () => {
     setFormdata((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    console.log(formdata);
+    setIsPending(true);
+    const { success, error, data } = formSchema.safeParse(formdata);
+    if (!success) {
+      handleWarnSwal(error.issues[0].message);
+      setIsPending(false);
+      return;
+    }
+    const res = await postRequest("/auth/register", data);
+    if (res.status === 200 && res.data.success === true) {
+      setUserDetail({
+        isAuthorized: true,
+        userId: res?.data?.id,
+        userEmail: res?.data?.userEmail,
+      });
+    } else {
+      handleWarnSwal("Something went wrong, Please try later!");
+    }
+    setIsPending(false);
     setFormdata({
       firstName: "",
       lastName: "",
       email: "",
       password: "",
     });
+
+    if (res?.data?.success) {
+      navigate("/");
+    }
   };
 
   return (
@@ -61,7 +110,7 @@ export const Register = () => {
           onChange={handleOnchange}
         />
         <PasswordInput value={formdata.password} onChange={handleOnchange} />
-        <FormSubmit isLogin={false} />
+        <FormSubmit isLogin={false} isPending={isPending} />
       </form>
     </section>
   );

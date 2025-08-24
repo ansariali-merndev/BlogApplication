@@ -3,8 +3,15 @@ import { CustomInput } from "../components/form/EmailInput";
 import { FormHeading } from "../components/form/FormHeading";
 import { FormSubmit } from "../components/form/FormSubmit";
 import { PasswordInput } from "../components/form/Password";
+import { postRequest } from "../axios";
+import { handleWarnSwal } from "../utils/swal";
+import { useUser } from "../utils/UserContext";
+import { useNavigate } from "react-router-dom";
 
 export const Login = () => {
+  const [isPending, setIsPending] = useState(false);
+  const { setUserDetail } = useUser();
+  const navigate = useNavigate();
   const [formdata, setFormdata] = useState({ email: "", password: "" });
 
   const handleOnChange = (e) => {
@@ -12,10 +19,36 @@ export const Login = () => {
     setFormdata((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    console.log(formdata);
-    setFormdata({ email: "", password: "" });
+    setIsPending(true);
+
+    try {
+      const res = await postRequest("/auth/login", formdata);
+
+      if (res.status === 409 || !res.data?.success) {
+        handleWarnSwal("Please check your Email and password");
+        return;
+      }
+
+      setUserDetail({
+        isAuthorized: true,
+        userId: res?.data?.id,
+        userEmail: res?.data?.userEmail,
+      });
+
+      setFormdata({ email: "", password: "" });
+      if (res?.data?.success) {
+        navigate("/");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      handleWarnSwal(
+        "Something went wrong! Please try again. Also Please check your Email and password"
+      );
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -38,7 +71,7 @@ export const Login = () => {
           name={"email"}
         />
         <PasswordInput value={formdata.password} onChange={handleOnChange} />
-        <FormSubmit isLogin={true} />
+        <FormSubmit isLogin={true} isPending={isPending} />
       </form>
     </section>
   );
