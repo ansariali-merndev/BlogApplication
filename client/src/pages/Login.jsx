@@ -25,7 +25,6 @@ export const Login = () => {
 
     try {
       const res = await postRequest("/auth/login", formdata);
-
       if (res.status === 409 || !res.data?.success) {
         handleWarnSwal("Please check your Email and password");
         return;
