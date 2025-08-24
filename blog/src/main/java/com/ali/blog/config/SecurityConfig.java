@@ -22,11 +22,13 @@ public class SecurityConfig {
     private final CustomUserDetailServiceImpl customUserDetailService;
     private final JwtAuthFilters jwtAuthFilters;
     private final PasswordEncoder passwordEncoder;
+    private final CommonBeans commonBeans;
 
     @Bean
     public SecurityFilterChain securityFilterChain (HttpSecurity security) throws Exception {
         return security
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(commonBeans.corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()

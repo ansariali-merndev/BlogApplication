@@ -1,11 +1,10 @@
 package com.ali.blog.controllers;
 
 import com.ali.blog.config.JwtUtils;
-import com.ali.blog.dtos.AuthResponseDto;
-import com.ali.blog.dtos.LoginRequestDto;
-import com.ali.blog.dtos.RegisterRequestDto;
+import com.ali.blog.dtos.*;
 import com.ali.blog.services.impl.AuthServiceImpl;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +23,30 @@ public class AuthController {
     @GetMapping("/check")
     public String check () {
         return "Hello I am in Authentication Route";
+    }
+
+    @GetMapping("/logout")
+    public ResponseEntity<CommonDto> logout (HttpServletRequest request, HttpServletResponse response) {
+        try {
+            CommonDto commonDto = authService.logout(request, response);
+            return ResponseEntity.ok(commonDto);
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(CommonDto.builder().success(false).message(e.getMessage()).build());
+        }
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<ProfileDetailDto> getProfile (HttpServletRequest request) {
+        try {
+            ProfileDetailDto profileDetailDto = authService.getProfile(request);
+            return ResponseEntity.ok(profileDetailDto);
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(null);
+        }
     }
 
     @PostMapping("/register")
@@ -64,7 +87,7 @@ public class AuthController {
             return ResponseEntity.ok(authResponseDto);
         } catch (Exception e) {
             return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
+                    .status(HttpStatus.CONFLICT)
                     .body(AuthResponseDto
                             .builder()
                             .success(false)
